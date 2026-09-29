@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Love Jackpot</title>
+
+  <!-- Google Fonts & Canvas Confetti CDN -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <style>
+    /* ==================== RESET & BASE STYLE ==================== */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #fbf6f0;
+      font-family: 'Poppins', sans-serif;
+      color: #4a3e3d;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 15px 100px 15px;
+      overflow-x: hidden;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 420px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 25px;
+    }
+
+    .header-tag {
+      font-size: 13px;
+      letter-spacing: 2px;
+      color: #9c8a87;
+      text-transform: lowercase;
+    }
+
+    /* Teks Hasil Atas (Muncul Bertahap Per Putaran) */
+    .jackpot-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 32px;
+      font-weight: 600;
+      letter-spacing: 4px;
+      color: #382c2e;
+      text-transform: uppercase;
+      min-height: 45px;
+      text-align: center;
+      opacity: 0;
+      transform: scale(0.9);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    .jackpot-title.show {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    /* ==================== MESIN SLOT JACKPOT ==================== */
+    .slot-machine-card {
+      background: #f7d2d8;
+      border: 3px solid #e2aab3;
+      border-radius: 28px;
+      padding: 24px 20px;
+      width: 100%;
+      box-shadow: 0 12px 25px rgba(216, 155, 165, 0.25);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    .jackpot-badge {
+      background: #ffffff;
+      border: 1.5px solid #e0b4bc;
+      border-radius: 12px;
+      padding: 3px 14px;
+      font-size: 11px;
+      color: #83676c;
+      margin-bottom: 15px;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+      font-weight: 500;
+    }
+
+    /* Slot Reels Display */
+    .reels-container {
+      background: #2b1f21;
+      border-radius: 16px;
+      padding: 10px;
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      justify-content: space-between;
+      box-shadow: inset 0 4px 8px rgba(0,0,0,0.4);
+      margin-bottom: 18px;
+    }
+
+    .reel {
+      background: #fffcf9;
+      border-radius: 10px;
+      flex: 1;
+      height: 75px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 28px;
+      font-weight: 600;
+      color: #332225;
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.15);
+      overflow: hidden;
+      text-align: center;
+    }
+
+    .reel.spinning {
+      animation: blurSpin 0.12s infinite linear;
+    }
+
+    @keyframes blurSpin {
+      0% { transform: translateY(-4px); opacity: 0.7; }
+      50% { transform: translateY(4px); opacity: 0.3; }
+      100% { transform: translateY(0); opacity: 0.7; }
+    }
+
+    /* Tombol Putar */
+    .btn-putar {
+      width: 100%;
+      background: linear-gradient(180deg, #e65c7b 0%, #c93b5c 100%);
+      color: #ffffff;
+      border: none;
+      border-radius: 20px;
+      padding: 14px 0;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      cursor: pointer;
+      box-shadow: 0 5px 0 #9e243f, 0 8px 15px rgba(201, 59, 92, 0.3);
+      transition: all 0.1s ease;
+    }
+
+    .btn-putar:active {
+      transform: translateY(4px);
+      box-shadow: 0 1px 0 #9e243f, 0 4px 8px rgba(201, 59, 92, 0.3);
+    }
+
+    .btn-putar:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* ==================== KONTEN BAWAH (FOTO, SURAT, QUESTION) ==================== */
+    .content-section {
+      width: 100%;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 30px;
+      margin-top: 10px;
+    }
+
+    .content-section.active {
+      display: flex;
+    }
+
+    /* Scroll Animation Reveal */
+    .reveal-card {
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+      width: 100%;
+    }
+
+    .reveal-card.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Polaroid Card */
+    .polaroid-card {
+      background: #ffffff;
+      padding: 16px 16px 22px 16px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .polaroid-img-box {
+      width: 100%;
+      height: 260px;
+      border-radius: 6px;
+      overflow: hidden;
+      background-color: #eee;
+    }
+
+    .polaroid-img-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .polaroid-caption {
+      margin-top: 14px;
+      font-size: 13px;
+      color: #665254;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Surat Cinta */
+    .letter-card {
+      background: #ffffff;
+      padding: 28px 24px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+      line-height: 1.8;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 18px;
+      color: #423537;
+      text-align: left;
+    }
+
+    /* Question Card */
+    .question-card {
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 30px 20px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+      text-align: center;
+    }
+
+    .question-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 24px;
+      font-weight: 600;
+      color: #36292b;
+      margin-bottom: 20px;
+    }
+
+    /* Container Tombol Sejajar (Flexbox) */
+    .buttons-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+      min-height: 60px;
+      width: 100%;
+    }
+
+    .btn-mau {
+      background: linear-gradient(180deg, #e65c7b 0%, #c93b5c 100%);
+      color: #ffffff;
+      border: none;
+      border-radius: 14px;
+      padding: 12px 32px;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(201, 59, 92, 0.3);
+      transition: transform 0.2s ease;
+    }
+
+    .btn-enggak {
+      background: #f3ece8;
+      color: #8c787a;
+      border: 1px solid #e0d4d0;
+      border-radius: 14px;
+      padding: 12px 24px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+      transform-origin: center;
+    }
+
+    /* Modal Pop-up YES */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-box {
+      background: #ffffff;
+      width: 85%;
+      max-width: 350px;
+      border-radius: 24px;
+      padding: 30px 20px;
+      text-align: center;
+      box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+      transform: scale(0.8);
+      transition: transform 0.4s ease;
+    }
+
+    .modal-overlay.active .modal-box {
+      transform: scale(1);
+    }
+
+    .modal-icon { font-size: 48px; margin-bottom: 10px; }
+    .modal-title { font-family: 'Cormorant Garamond', serif; font-size: 26px; color: #c93b5c; margin-bottom: 10px; }
+    .modal-desc { font-size: 14px; color: #665254; line-height: 1.6; margin-bottom: 20px; }
+    
+    /* STYLE TOMBOL WHATSAPP */
+    .btn-wa {
+      display: inline-block;
+      width: 100%;
+      background-color: #25D366;
+      color: #ffffff;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 14px;
+      padding: 12px 0;
+      border-radius: 14px;
+      margin-bottom: 10px;
+      box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+      transition: transform 0.2s ease, background-color 0.2s ease;
+    }
+
+    .btn-wa:hover {
+      background-color: #20bd5a;
+      transform: translateY(-2px);
+    }
+
+    .btn-close-modal {
+      background: #f3ece8; 
+      color: #8c787a; 
+      border: none; 
+      border-radius: 12px; 
+      padding: 10px 24px; 
+      font-size: 13px; 
+      cursor: pointer;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ELEMENT AUDIO UNTUK MUSIK -->
+  <!-- Ganti "lagu_kamu.mp3" dengan nama file musik lokal kamu atau link URL audio -->
+  <audio id="bgMusic" src="love-w2e.mp3" loop preload="auto"></audio>
+
+  <div class="container">
+    <span class="header-tag">love story</span>
+    
+    <!-- TEKS ATAS BERTAHAP -->
+    <h1 class="jackpot-title" id="jackpotTitle"></h1>
+
+    <!-- MESIN SLOT JACKPOT -->
+    <div class="slot-machine-card">
+      <div class="jackpot-badge" id="jackpotBadge">love jackpot (1/3)</div>
+      
+      <div class="reels-container">
+        <div class="reel" id="reel1">|</div>
+        <div class="reel" id="reel2">|</div>
+        <div class="reel" id="reel3">|</div>
+      </div>
+
+      <button class="btn-putar" id="btnPutar" onclick="spinSlot()">PUTAR</button>
+    </div>
+
+    <!-- KONTEN BAWAH (TERBUKA SETELAH 3X PUTARAN) -->
+    <div class="content-section" id="contentSection">
+      
+      <!-- GAMBAR 3: FOTO POLAROID -->
+      <div class="reveal-card polaroid-card">
+        <div class="polaroid-img-box">
+          <img src="photo1.jpg" alt="Foto Pasangan" />
+        </div>
+        <div class="polaroid-caption">My bini ♥</div>
+      </div>
+
+      <!-- GAMBAR 3: SURAT CINTA -->
+      <div class="reveal-card letter-card">
+        Jujur, makin ke sini aku makin sadar kalau hadirnya kamu di hidup aku itu bukan cuma sekadar bikin hari-hari aku lebih seru, tapi kamu juga jadi salah satu alasan kenapa aku bisa ngerasa sebahagia ini. Aku suka semua hal tentang kita, dari cara kita ngobrol, ketawa bareng, saling cerita, sampai hal-hal kecil yang mungkin kelihatannya sederhana tapi selalu berarti buat aku.
+
+Aku nggak cuma mau kita bersama untuk sekarang. Aku pengen hubungan ini terus berjalan, terus tumbuh, dan terus jadi lebih baik seiring berjalannya waktu. Aku pengen kita bisa melewati banyak hal bareng, bukan cuma saat semuanya mudah, tapi juga saat kita lagi sama-sama capek, punya masalah, atau sedang berada di keadaan yang nggak sesuai harapan.
+
+Aku nggak tahu masa depan bakal seperti apa, tapi kalau boleh memilih, aku pengen masa depan itu tetap ada kamu di dalamnya. Aku pengen kita saling nemenin, saling jaga, saling dukung, sampai suatu hari nanti hubungan yang kita mulai dari sekarang bisa benar-benar sampai ke jenjang yang lebih serius.
+
+Aku pengen bukan cuma jadi seseorang yang pernah kamu sayang, tapi jadi seseorang yang bisa terus nemenin kamu sampai nanti. Sampai kita bisa melihat kembali semua perjalanan kita dan bilang, "ternyata kita berhasil melewati semuanya bareng."
+
+Aku sayang kamu, dan aku serius sama hubungan ini. Aku nggak janji semuanya bakal selalu sempurna, tapi aku janji aku bakal terus berusaha menjaga apa yang kita punya.
+
+Kalau kamu juga mau, aku pengen kita jalanin semuanya pelan-pelan, tumbuh bareng, belajar bareng, dan semoga suatu hari nanti... kita nggak cuma bilang "aku sayang kamu", tapi bisa bilang "akhirnya kita sampai di sini." ❤️
+      </div>
+
+      <!-- GAMBAR 4: KARTU PERTANYAAN -->
+      <div class="reveal-card question-card">
+        <div class="question-title">teruss samaa aku, ya?</div>
+        
+        <div class="buttons-container">
+          <button class="btn-mau" id="btnMau" onclick="acceptLove()">MAU</button>
+          <button class="btn-enggak" id="btnEnggak" onclick="shrinkNoButton()">ENGGAK</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- POP-UP TERIMA KASIH -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-box">
+      <div class="modal-icon">🥰❤️✨</div>
+      <div class="modal-title">Makasih Ya!</div>
+      <div class="modal-desc">
+        Yeay! Aku seneng banget! Aku janji bakal bikin kamu bahagia terus setiap hari! Love you! 💖
+      </div>
+
+      <!-- TOMBOL BALAS KE WHATSAPP -->
+      <!-- Ganti "628XXXXXXXXXX" dengan nomor HP kamu (format 628...) -->
+      <a id="waLink" href="https://wa.me/6285771466257?text=Aku%20mauuu%20terus%20sama%20kamu!%20🥰❤️" target="_blank" class="btn-wa">
+        💬 Kirim Jawaban via WhatsApp
+      </a>
+
+      <button class="btn-close-modal" onclick="closeModal()">Tutup</button>
+    </div>
+  </div>
+
+  <script>
+    /* ==================== PLAY AUDIO LOGIC ==================== */
+    const bgMusic = document.getElementById("bgMusic");
+
+    function playAudio() {
+      if (bgMusic) {
+        bgMusic.play().catch(error => {
+          console.log("Autoplay dicegah browser, musik akan diputar saat interaksi pertama:", error);
+        });
+      }
+    }
+
+    // Mencoba memutar audio secara otomatis saat halaman dibuka
+    window.addEventListener("DOMContentLoaded", () => {
+      playAudio();
+
+      // Jika browser memblokir autoplay tanpa interaksi, audio diputar begitu layar diklik pertama kali
+      const enableAudioOnTouch = () => {
+        playAudio();
+        document.removeEventListener("click", enableAudioOnTouch);
+        document.removeEventListener("touchstart", enableAudioOnTouch);
+      };
+
+      document.addEventListener("click", enableAudioOnTouch);
+      document.addEventListener("touchstart", enableAudioOnTouch);
+    });
+
+    /* ==================== MESIN SLOT LOGIC ==================== */
+    const spinSequence = [
+      ["I", "L", "O"],  // Putaran 1 -> ILO
+      ["V", "E", "Y"],  // Putaran 2 -> VEY
+      ["O", "U", "❤️"]  // Putaran 3 -> OU❤️
+    ];
+
+    const topTextHistory = [
+      "I LO",
+      "I LO VEY",
+      "I LOVE YOU ❤️"
+    ];
+
+    const randomChars = ["A", "B", "C", "X", "Y", "Z", "7", "♥", "L", "O", "V", "E"];
+    let currentSpin = 0;
+
+    function spinSlot() {
+      playAudio(); // Memastikan audio berjalan saat tombol dipencet
+      
+      if (currentSpin >= 3) return;
+
+      const btnPutar = document.getElementById("btnPutar");
+      const jackpotBadge = document.getElementById("jackpotBadge");
+      const reel1 = document.getElementById("reel1");
+      const reel2 = document.getElementById("reel2");
+      const reel3 = document.getElementById("reel3");
+      const jackpotTitle = document.getElementById("jackpotTitle");
+      const contentSection = document.getElementById("contentSection");
+
+      btnPutar.disabled = true;
+      btnPutar.innerText = "MEMUTAR...";
+
+      reel1.classList.add("spinning");
+      reel2.classList.add("spinning");
+      reel3.classList.add("spinning");
+
+      const i1 = setInterval(() => reel1.innerText = randomChars[Math.floor(Math.random() * randomChars.length)], 80);
+      const i2 = setInterval(() => reel2.innerText = randomChars[Math.floor(Math.random() * randomChars.length)], 80);
+      const i3 = setInterval(() => reel3.innerText = randomChars[Math.floor(Math.random() * randomChars.length)], 80);
+
+      const target = spinSequence[currentSpin];
+
+      setTimeout(() => {
+        clearInterval(i1);
+        reel1.classList.remove("spinning");
+        reel1.innerText = target[0];
+      }, 700);
+
+      setTimeout(() => {
+        clearInterval(i2);
+        reel2.classList.remove("spinning");
+        reel2.innerText = target[1];
+      }, 1200);
+
+      setTimeout(() => {
+        clearInterval(i3);
+        reel3.classList.remove("spinning");
+        reel3.innerText = target[2];
+
+        jackpotTitle.innerText = topTextHistory[currentSpin];
+        jackpotTitle.classList.add("show");
+
+        currentSpin++;
+
+        if (currentSpin < 3) {
+          btnPutar.disabled = false;
+          btnPutar.innerText = "PUTAR LAGI";
+          jackpotBadge.innerText = `love jackpot (${currentSpin + 1}/3)`;
+        } else {
+          btnPutar.innerText = "SELESAI ✨";
+          jackpotBadge.innerText = "jackpot unlocked!";
+
+          contentSection.classList.add("active");
+          initScrollObserver();
+        }
+      }, 1700);
+    }
+
+    // FUNGSI: Tombol ENGGAK Mengecil Tiap Kali Dipencet
+    let noScale = 1;
+    let yesScale = 1;
+
+    function shrinkNoButton() {
+      const btnEnggak = document.getElementById("btnEnggak");
+      const btnMau = document.getElementById("btnMau");
+
+      noScale -= 0.25;
+
+      if (noScale <= 0.1) {
+        noScale = 0;
+        btnEnggak.style.display = "none";
+      } else {
+        btnEnggak.style.transform = `scale(${noScale})`;
+      }
+
+      yesScale += 0.12;
+      btnMau.style.transform = `scale(${yesScale})`;
+    }
+
+    // Pengamat Scroll
+    function initScrollObserver() {
+      const observerOptions = {
+        root: null,
+        threshold: 0.2
+      };
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+          } else {
+            entry.target.classList.remove("visible");
+          }
+        });
+      }, observerOptions);
+
+      document.querySelectorAll(".reveal-card").forEach(card => {
+        observer.observe(card);
+      });
+    }
+
+    // Klik MAU
+    function acceptLove() {
+      confetti({
+        particleCount: 130,
+        spread: 85,
+        origin: { y: 0.6 }
+      });
+
+      document.getElementById("modalOverlay").classList.add("active");
+    }
+
+    function closeModal() {
+      document.getElementById("modalOverlay").classList.remove("active");
+    }
+  </script>
+</body>
+</html>
